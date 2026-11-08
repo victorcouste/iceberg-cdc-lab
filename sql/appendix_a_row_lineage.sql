@@ -1,0 +1,16 @@
+-- =====================================================================================
+-- APPENDIX A -- VARIANT: row-lineage watermark instead of a changelog view
+-- =====================================================================================
+-- If you want to avoid copy-on-write on the source, Iceberg v3 row lineage gives a
+-- monotonic integer watermark -- deterministic and replayable, unlike a timestamp:
+--
+--   SELECT max("$last_updated_sequence_number") FROM onprem.customer_onprem;
+--   SELECT * FROM onprem.customer_onprem WHERE "$last_updated_sequence_number" > :last_seq;
+--
+-- Strictly better than a "$file_modified_time" watermark -- it is per-row rather than
+-- per-file, so a rewritten file no longer makes untouched rows look changed.
+--
+-- BUT it is still blind to DELETEs: a deleted row is simply absent, so no predicate can
+-- select it. To close that you need either soft deletes on-prem, or a periodic key-only
+-- anti-join reconciliation (transfers one column, so it is affordable but not free).
+-- This is the main reason to prefer create_changelog_view despite the CoW constraint.

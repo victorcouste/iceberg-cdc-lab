@@ -1,0 +1,16 @@
+-- =====================================================================================
+-- APPENDIX B -- VARIANT: branch as a multi-statement commit unit
+-- =====================================================================================
+-- Answers "how do I get a real commit instead of many little writes?" when one MERGE
+-- is not enough (several tables, or validation before publishing).
+-- Write into a branch, validate it, then fast-forward main in a single atomic move.
+-- Readers of main see nothing until the fast-forward.
+--
+--   CREATE BRANCH etl_batch IN TABLE cloud.customer_cloud;
+--   MERGE INTO cloud.customer_cloud ... ;        -- targeting the branch
+--   -- validate on the branch: SELECT ... FROM cloud.customer_cloud FOR VERSION AS OF 'etl_batch';
+--   ALTER BRANCH main IN TABLE cloud.customer_cloud FAST FORWARD TO etl_batch;
+--   DROP BRANCH etl_batch IN TABLE cloud.customer_cloud;
+--
+-- Confirm the exact branch-targeting syntax for DML against the CREATE BRANCH /
+-- ALTER BRANCH reference pages before relying on this.
